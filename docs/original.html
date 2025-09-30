@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag Race Physics Demo - Position, Velocity & Acceleration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: #1a1a2e;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            padding: 30px;
+            border: 1px solid #2a2a3e;
+        }
+
+        h1 {
+            text-align: center;
+            color: #f0f0f0;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #8a92ff;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+
+        .visualization-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .relationship-diagram {
+            background: #252538;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #3a3a4e;
+            margin-bottom: 20px;
+        }
+
+        .relationship-header {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #f0f0f0;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .relationship-content {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: 0;
+            position: relative;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .relationship-item {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            background: #1a1a2e;
+            border: 2px solid;
+            position: relative;
+            min-width: 0;
+        }
+
+        .relationship-item:first-child {
+            border-radius: 10px 0 0 10px;
+        }
+
+        .relationship-item:last-child {
+            border-radius: 0 10px 10px 0;
+        }
+
+        .relationship-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #f0f0f0;
+            margin-bottom: 8px;
+        }
+
+        .relationship-description {
+            font-size: 0.75em;
+            color: #b0b0c0;
+            line-height: 1.3;
+        }
+
+        .arrow-forward {
+            position: absolute;
+            top: -15px;
+            right: -25px;
+            color: #4ecdc4;
+            font-size: 1.2em;
+            z-index: 2;
+            background: transparent;
+        }
+
+        .arrow-backward {
+            position: absolute;
+            bottom: -15px;
+            right: -25px;
+            color: #ff6b6b;
+            font-size: 1.2em;
+            z-index: 2;
+            background: transparent;
+        }
+
+        .arrow-label-forward {
+            position: absolute;
+            top: -5px;
+            right: -65px;
+            font-size: 0.8em;
+            color: #4ecdc4;
+            text-align: left;
+            width: 60px;
+            z-index: 1;
+            background: transparent;
+        }
+
+        .arrow-label-backward {
+            position: absolute;
+            bottom: -5px;
+            right: -70px;
+            font-size: 0.8em;
+            color: #ff6b6b;
+            text-align: left;
+            width: 70px;
+            z-index: 1;
+            background: transparent;
+        }
+
+        .track-container {
+            background: linear-gradient(to bottom, #1a1a2e 0%, #1a1a2e 60%, #333 60%, #555 100%);
+            border-radius: 10px;
+            padding: 20px;
+            height: 120px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #3a3a4e;
+        }
+
+        .track {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            right: 20px;
+            height: 4px;
+            background: #FFD700;
+            border-top: 2px dashed rgba(255,255,255,0.3);
+        }
+
+        .car {
+            position: absolute;
+            bottom: 28px;
+            width: 40px;
+            height: 20px;
+            background: #FF4444;
+            border-radius: 5px;
+            transition: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .car::after {
+            content: '🏎️';
+            position: absolute;
+            top: -5px;
+            left: 5px;
+            font-size: 20px;
+        }
+
+        .finish-line {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            width: 4px;
+            height: 40px;
+            background: repeating-linear-gradient(
+                to bottom,
+                white,
+                white 5px,
+                black 5px,
+                black 10px
+            );
+        }
+
+        .graphs-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .graph-wrapper {
+            background: #252538;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border: 1px solid #3a3a4e;
+            position: relative;
+        }
+
+        .graph-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        canvas {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #3a3a4e;
+            background: #1a1a2e;
+            border-radius: 5px;
+            cursor: crosshair;
+        }
+
+        .hint-text {
+            color: #8a92ff;
+            font-size: 0.85em;
+            text-align: center;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .controls-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .control-box {
+            background: #252538;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #3a3a4e;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-group h3 {
+            color: #f0f0f0;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .play-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.playing {
+            background: #48bb78;
+        }
+
+        .info-box {
+            background: #2a2a3e;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .info-box h4 {
+            color: #8a92ff;
+            margin-bottom: 5px;
+        }
+
+        .info-box p {
+            color: #b0b0c0;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .code-example {
+            background: #0f0f1e;
+            border: 1px solid #3a3a4e;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            color: #4ecdc4;
+            font-size: 0.85em;
+        }
+
+        .instructions {
+            background: #2a2a3e;
+            border-left: 4px solid #ff6b6b;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h4 {
+            color: #ff6b6b;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            color: #b0b0c0;
+            margin-left: 20px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1200px) {
+            .relationship-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .relationship-item {
+                border-radius: 10px !important;
+            }
+            .arrow-forward, .arrow-backward,
+            .arrow-label-forward, .arrow-label-backward {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .graphs-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏎 Interactive Drag Race Physics 🏎</h1>
+        <div class="subtitle">Understanding Motion Through Programming Intuition</div>
+        
+        <div class="visualization-area">
+            <div class="relationship-diagram">
+                <div class="relationship-header">
+                    <strong>Going Left → Right:</strong> Integration (adding up) makes curves smoother<br>
+                    <strong>Going Right → Left:</strong> Differentiation (taking differences) makes curves more jagged
+                </div>
+                <div class="relationship-content">
+                    <div class="relationship-item" style="border-color: #ff6b6b;">
+                        <div class="relationship-title" style="color: #ff6b6b;">Acceleration</div>
+                        <div class="relationship-description">
+                            Piecewise Linear<br>
+                            Most jagged<br>
+                            Shows instant changes
+                        </div>
+                        <div class="arrow-forward">→</div>
+                        <div class="arrow-label-forward">Integral</div>
+                        <div class="arrow-backward">←</div>
+                        <div class="arrow-label-backward">Derivative</div>
+                    </div>
+                    
+                    <div class="relationship-item" style="border-color: #4ecdc4;">
+                        <div class="relationship-title" style="color: #4ecdc4;">Velocity</div>
+                        <div class="relationship-description">
+                            Piecewise Quadratic<br>
+                            Smoother curves<br>
+                            Continuous slope
+                        </div>
+                        <div class="arrow-forward">→</div>
+                        <div class="arrow-label-forward">Integral</div>
+                        <div class="arrow-backward">←</div>
+                        <div class="arrow-label-backward">Derivative</div>
+                    </div>
+
+                    <div class="relationship-item" style="border-color: #45B7D1;">
+                        <div class="relationship-title" style="color: #45B7D1;">Position</div>
+                        <div class="relationship-description">
+                            Piecewise Cubic<br>
+                            Smoothest<br>
+                            Most averaged
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="track-container">
+                <div class="track"></div>
+                <div class="car" id="car"></div>
+                <div class="finish-line"></div>
+            </div>
+            
+            <div class="graphs-container">
+                <div class="graph-wrapper">
+                    <div class="graph-title" style="color: #FF6B6B;">Acceleration (m/s²)</div>
+                    <canvas id="accelCanvas"></canvas>
+                    <div class="hint-text">Click to add • Drag points • Right-click to remove</div>
+                </div>
+                <div class="graph-wrapper">
+                    <div class="graph-title" style="color: #4ECDC4;">Velocity (m/s)</div>
+                    <canvas id="velocityCanvas"></canvas>
+                    <div class="hint-text">Drag corresponding points to adjust</div>
+                </div>
+                <div class="graph-wrapper">
+                    <div class="graph-title" style="color: #45B7D1;">Position (m)</div>
+                    <canvas id="positionCanvas"></canvas>
+                    <div class="hint-text">Drag middle points to adjust</div>
+                </div>
+            </div>
+            
+            <div class="controls-section">
+                <div class="control-box">
+                    <div class="instructions">
+                        <h4>How It Works:</h4>
+                        <ul>
+                            <li>The car starts at rest (v=0, a=0) and finishes in 5 seconds</li>
+                            <li>Acceleration points define a piecewise linear function</li>
+                            <li>Velocity becomes piecewise quadratic (smooth parabolas)</li>
+                            <li>Position becomes piecewise cubic (very smooth curves)</li>
+                            <li>Corresponding points appear on all three graphs</li>
+                        </ul>
+                    </div>
+
+                    <div class="control-group">
+                        <h3>Simulation Controls</h3>
+                        <div class="play-controls">
+                            <button id="playBtn">▶ Play</button>
+                            <button id="pauseBtn">⏸ Pause</button>
+                            <button id="stepBtn">⏭ Step</button>
+                            <button id="resetBtn">🔄 Reset</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-box">
+                    <div class="info-box">
+                        <h4>🔧 The Programming View</h4>
+                        <div class="code-example">
+                            // Every 0.01 seconds:<br>
+                            v[i] = v[i-1] + a[i] * dt  // Add up accel<br>
+                            x[i] = x[i-1] + v[i] * dt  // Add up velocity<br><br>
+                            // Or going backwards:<br>
+                            a[i] = (v[i+1] - v[i-1]) / (2*dt)<br>
+                            v[i] = (x[i+1] - x[i-1]) / (2*dt)
+                        </div>
+                        <p>
+                            <strong>Integration:</strong> Running sum in a loop<br>
+                            <strong>Differentiation:</strong> Array of differences<br>
+                            That's all calculus really is!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="control-box">
+                    <div class="info-box" style="border-left-color: #4ecdc4;">
+                        <h4>📊 Mathematical Relationships</h4>
+                        <p>
+                            <strong>Piecewise Linear → Quadratic:</strong><br>
+                            When you integrate a straight line, you get a parabola<br><br>
+                            <strong>Piecewise Quadratic → Cubic:</strong><br>
+                            When you integrate a parabola, you get a cubic curve<br><br>
+                            Notice how the "corners" in acceleration become smooth curves in velocity and position!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="control-box">
+                    <div class="info-box" style="border-left-color: #667eea;">
+                        <h4>🧮 The Big Ideas of Calculus</h4>
+                        <p>
+                            <strong>Derivatives and integrals are like subtraction and addition, but continuous:</strong><br><br>
+                            
+                            A <strong>derivative</strong> is like asking "how fast is this changing?" at every single moment. It's subtraction (finding the difference) but done continuously - imagine subtracting the value at each instant from the next instant, forever.<br><br>
+                            
+                            An <strong>integral</strong> is like asking "what does this all add up to?" It's addition done continuously - imagine adding up tiny slices, but making the slices infinitely thin and having infinitely many of them.<br><br>
+                            
+                            <strong>In our drag race:</strong><br>
+                            • Velocity is the derivative of position: "How fast is position changing?"<br>
+                            • Acceleration is the derivative of velocity: "How fast is velocity changing?"<br><br>
+                            
+                            Going the other way:<br>
+                            • Position is the integral of velocity: "All the tiny movements add up to where you are"<br>
+                            • Velocity is the integral of acceleration: "All the tiny speed changes add up to your current speed"
+                        </p>
+                    </div>
+                </div>
+
+                <div class="control-box">
+                    <div class="info-box" style="border-left-color: #4ecdc4;">
+                        <h4>📐 Computer Math vs. Paper Math</h4>
+                        <p>
+                            <strong>On computers (discrete - separate points):</strong><br>
+                            • <strong>Δ (Delta)</strong> = "change in" - the difference between two points<br>
+                            &nbsp;&nbsp;Example: Δx = x₂ - x₁ (how much position changed)<br><br>
+                            
+                            • <strong>Σ (Sigma)</strong> = "sum up" - add all the pieces together<br>
+                            &nbsp;&nbsp;Example: Σ(velocities × time steps) = total distance<br><br>
+                            
+                            <strong>In math class (continuous - smooth curves):</strong><br>
+                            • <strong>d/dx</strong> = derivative - like Δ but infinitely small<br>
+                            &nbsp;&nbsp;Instead of (x₂ - x₁)/(t₂ - t₁), we shrink the gap to zero<br><br>
+                            
+                            • <strong>∫</strong> = integral - like Σ but infinite pieces<br>
+                            &nbsp;&nbsp;The ∫ is actually a stretched "S" for "Sum"!<br><br>
+                            
+                            <strong>They're the same idea:</strong> Computers use chunks (discrete), math uses smooth (continuous)
+                        </p>
+                    </div>
+                </div>
+
+                <div class="control-box">
+                    <div class="info-box" style="border-left-color: #ff6b6b;">
+                        <h4>⚡ The Fundamental Theorem of Calculus</h4>
+                        <div class="code-example" style="color: #fff; font-size: 1.1em; text-align: center; margin: 15px 0;">
+                            ∫ᵃᵇ f'(x) dx = f(b) - f(a)
+                        </div>
+                        <p>
+                            <strong>What this actually means:</strong><br><br>
+                            
+                            If you add up all the tiny changes (∫ f'(x) dx)...<br>
+                            ...you get the total change (f(b) - f(a))<br><br>
+                            
+                            <strong>In our drag race:</strong><br>
+                            • f'(x) = velocity (rate of position change)<br>
+                            • f(x) = position<br>
+                            • a = start time (0 seconds)<br>
+                            • b = end time (5 seconds)<br><br>
+                            
+                            So: ∫₀⁵ velocity dt = position(5) - position(0)<br><br>
+                            
+                            Translation: "If you add up all the tiny movements (velocity × tiny time), you get the total distance traveled"<br><br>
+                            
+                            <strong>It works both ways:</strong> Derivatives and integrals undo each other, just like division undoes multiplication!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulation state
+        let simState = {
+            time: [],
+            accel: [],
+            velocity: [],
+            position: [],
+            currentTime: 0,
+            maxTime: 5,  // 5 seconds to finish
+            isPlaying: false,
+            dt: 0.01,
+            finishPosition: 100, // 100 meters
+            // Control points for acceleration graph
+            accelPoints: [{t: 0, value: 0}, {t: 2.5, value: 10}, {t: 5, value: 0}],
+            // Corresponding points for velocity and position (computed)
+            velocityPoints: [],
+            positionPoints: []
+        };
+
+        // Which graph we're dragging from
+        let dragState = {
+            isDragging: false,
+            graphType: null,
+            pointIndex: null
+        };
+
+        // Canvas contexts
+        const accelCanvas = document.getElementById('accelCanvas');
+        const velocityCanvas = document.getElementById('velocityCanvas');
+        const positionCanvas = document.getElementById('positionCanvas');
+        const accelCtx = accelCanvas.getContext('2d');
+        const velocityCtx = velocityCanvas.getContext('2d');
+        const positionCtx = positionCanvas.getContext('2d');
+
+        // Set up canvas resolution
+        function setupCanvases() {
+            [accelCanvas, velocityCanvas, positionCanvas].forEach(canvas => {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * 2;
+                canvas.height = rect.height * 2;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(2, 2);
+            });
+        }
+
+        // Get value at time t using piecewise linear interpolation
+        function interpolateLinear(points, t) {
+            const sorted = [...points].sort((a, b) => a.t - b.t);
+            
+            if (t <= sorted[0].t) return sorted[0].value;
+            if (t >= sorted[sorted.length - 1].t) return sorted[sorted.length - 1].value;
+            
+            for (let i = 0; i < sorted.length - 1; i++) {
+                if (t >= sorted[i].t && t <= sorted[i + 1].t) {
+                    const ratio = (t - sorted[i].t) / (sorted[i + 1].t - sorted[i].t);
+                    return sorted[i].value + ratio * (sorted[i + 1].value - sorted[i].value);
+                }
+            }
+            
+            return 0;
+        }
+
+        // Compute quadratic curve for a segment with given boundary conditions
+        function computeQuadraticSegment(t0, v0, a0, t1, v1, a1, t) {
+            // For a quadratic v(t) = at² + bt + c with acceleration a(t) = 2at + b
+            const dt = t1 - t0;
+            const tau = (t - t0) / dt;
+            
+            // Hermite interpolation for quadratic
+            const h0 = 1 - tau;
+            const h1 = tau;
+            
+            // Use acceleration to determine the curvature
+            const v_mid = (v0 + v1) / 2 + (a0 - a1) * dt / 8;
+            
+            // Quadratic bezier interpolation
+            const v = (1-tau)*(1-tau)*v0 + 2*(1-tau)*tau*v_mid + tau*tau*v1;
+            
+            return v;
+        }
+
+        // Compute cubic curve for position
+        function computeCubicSegment(t0, x0, v0, t1, x1, v1, t) {
+            const dt = t1 - t0;
+            const tau = (t - t0) / dt;
+            
+            // Hermite cubic interpolation
+            const h00 = 2*tau*tau*tau - 3*tau*tau + 1;
+            const h10 = tau*tau*tau - 2*tau*tau + tau;
+            const h01 = -2*tau*tau*tau + 3*tau*tau;
+            const h11 = tau*tau*tau - tau*tau;
+            
+            return h00 * x0 + h10 * dt * v0 + h01 * x1 + h11 * dt * v1;
+        }
+
+        // Compute all values from acceleration points
+        function computeFromAcceleration() {
+            simState.time = [];
+            simState.accel = [];
+            simState.velocity = [];
+            simState.position = [];
+            
+            const sorted = [...simState.accelPoints].sort((a, b) => a.t - b.t);
+            
+            // Initialize corresponding points for velocity and position
+            simState.velocityPoints = [];
+            simState.positionPoints = [];
+            
+            // First pass: compute raw velocity and position values
+            let v_cumulative = 0;
+            let x_cumulative = 0;
+            let velocityAtPoints = [0];
+            let positionAtPoints = [0];
+            
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const dt = sorted[i + 1].t - sorted[i].t;
+                const a_avg = (sorted[i].value + sorted[i + 1].value) / 2;
+                v_cumulative += a_avg * dt;
+                velocityAtPoints.push(v_cumulative);
+                
+                // Compute position increment for this segment
+                const v0 = velocityAtPoints[i];
+                const v1 = v_cumulative;
+                const a0 = sorted[i].value;
+                const a1 = sorted[i + 1].value;
+                
+                // Position increment using trapezoidal rule with quadratic correction
+                const dx = (v0 + v1) * dt / 2 + (a0 - a1) * dt * dt / 12;
+                x_cumulative += dx;
+                positionAtPoints.push(x_cumulative);
+            }
+            
+            // Scale to meet finish constraint
+            const scaleFactor = simState.finishPosition / (x_cumulative || 1);
+            
+            // Apply scaling to velocity and position
+            for (let i = 0; i < velocityAtPoints.length; i++) {
+                velocityAtPoints[i] *= scaleFactor;
+            }
+            for (let i = 0; i < positionAtPoints.length; i++) {
+                positionAtPoints[i] *= scaleFactor;
+            }
+            
+            // Create velocity and position control points with scaled values
+            for (let i = 0; i < sorted.length; i++) {
+                simState.velocityPoints.push({
+                    t: sorted[i].t,
+                    value: velocityAtPoints[i],
+                    isDraggable: i > 0 && i < sorted.length - 1
+                });
+                
+                simState.positionPoints.push({
+                    t: sorted[i].t,
+                    value: positionAtPoints[i],
+                    isDraggable: i > 0 && i < sorted.length - 1
+                });
+            }
+            
+            // Generate smooth time series data
+            for (let t = 0; t <= simState.maxTime; t += simState.dt) {
+                simState.time.push(t);
+                simState.accel.push(interpolateLinear(simState.accelPoints, t));
+                
+                // Find appropriate segment for velocity (quadratic)
+                let v = 0;
+                for (let i = 0; i < sorted.length - 1; i++) {
+                    if (t >= sorted[i].t && t <= sorted[i + 1].t) {
+                        v = computeQuadraticSegment(
+                            sorted[i].t, velocityAtPoints[i], sorted[i].value,
+                            sorted[i + 1].t, velocityAtPoints[i + 1], sorted[i + 1].value,
+                            t
+                        );
+                        break;
+                    } else if (t > sorted[sorted.length - 1].t) {
+                        v = velocityAtPoints[velocityAtPoints.length - 1];
+                    }
+                }
+                simState.velocity.push(v);
+                
+                // Find appropriate segment for position (cubic)
+                let x = 0;
+                for (let i = 0; i < sorted.length - 1; i++) {
+                    if (t >= sorted[i].t && t <= sorted[i + 1].t) {
+                        x = computeCubicSegment(
+                            sorted[i].t, positionAtPoints[i], velocityAtPoints[i],
+                            sorted[i + 1].t, positionAtPoints[i + 1], velocityAtPoints[i + 1],
+                            t
+                        );
+                        break;
+                    } else if (t > sorted[sorted.length - 1].t) {
+                        x = simState.finishPosition;
+                    }
+                }
+                simState.position.push(x);
+            }
+        }
+
+        // Compute from velocity changes
+        function computeFromVelocity() {
+            // When a velocity point is dragged, we need to adjust acceleration
+            // This maintains the integral relationship
+            
+            const sorted = [...simState.accelPoints].sort((a, b) => a.t - b.t);
+            
+            // For each segment, adjust acceleration to match velocity change
+            for (let i = 1; i < simState.velocityPoints.length - 1; i++) {
+                if (i < sorted.length) {
+                    const v_prev = simState.velocityPoints[i - 1].value;
+                    const v_curr = simState.velocityPoints[i].value;
+                    const t_prev = simState.velocityPoints[i - 1].t;
+                    const t_curr = simState.velocityPoints[i].t;
+                    const dt = t_curr - t_prev;
+                    
+                    if (dt > 0) {
+                        // Adjust acceleration to achieve desired velocity
+                        const dv = v_curr - v_prev;
+                        const a_avg = dv / dt;
+                        
+                        // Adjust the acceleration point
+                        const accelPoint = simState.accelPoints.find(p => Math.abs(p.t - t_curr) < 0.01);
+                        if (accelPoint) {
+                            accelPoint.value = 2 * a_avg - simState.accelPoints[i - 1].value;
+                        }
+                    }
+                }
+            }
+            
+            computeFromAcceleration();
+        }
+
+        // Compute from position changes
+        function computeFromPosition() {
+            // When a position point is dragged, adjust velocities and accelerations
+            
+            // First, compute required velocities from position changes
+            for (let i = 1; i < simState.positionPoints.length - 1; i++) {
+                const x_prev = simState.positionPoints[i - 1].value;
+                const x_curr = simState.positionPoints[i].value;
+                const x_next = simState.positionPoints[i + 1].value;
+                const t_prev = simState.positionPoints[i - 1].t;
+                const t_curr = simState.positionPoints[i].t;
+                const t_next = simState.positionPoints[i + 1].t;
+                
+                // Estimate velocity at this point (allowing negative values)
+                const v_est = ((x_curr - x_prev) / (t_curr - t_prev) + 
+                               (x_next - x_curr) / (t_next - t_curr)) / 2;
+                
+                simState.velocityPoints[i].value = v_est;
+            }
+            
+            computeFromVelocity();
+        }
+
+        // Calculate dynamic min/max for graph scaling
+        function getGraphBounds(data, graphType, points) {
+            // Include both the curve data and control points in bounds calculation
+            let allValues = [...data];
+            if (points) {
+                allValues.push(...points.map(p => p.value));
+            }
+            
+            let min = Math.min(...allValues);
+            let max = Math.max(...allValues);
+            
+            // Add padding
+            const range = max - min || 1;
+            min = min - range * 0.15;
+            max = max + range * 0.15;
+            
+            // Round to nice numbers
+            if (graphType === 'acceleration') {
+                min = Math.floor(min / 5) * 5;
+                max = Math.ceil(max / 5) * 5;
+            } else if (graphType === 'velocity') {
+                // Allow negative velocity - don't clamp to zero
+                min = Math.floor(min / 5) * 5;
+                max = Math.ceil(max / 5) * 5;
+                // Ensure we have enough space
+                if (max - min < 10) {
+                    const center = (max + min) / 2;
+                    min = center - 5;
+                    max = center + 5;
+                }
+            } else {
+                // Position can also go negative
+                min = Math.floor(min / 10) * 10;
+                max = Math.ceil(max / 10) * 10;
+                if (max - min < 20) {
+                    const center = (max + min) / 2;
+                    min = center - 10;
+                    max = center + 10;
+                }
+            }
+            
+            return { min, max };
+        }
+
+        // Draw a graph with dynamic scaling
+        function drawGraph(ctx, canvas, data, points, color, graphType) {
+            const width = canvas.width / 2;
+            const height = canvas.height / 2;
+            const padding = 35;
+            const graphWidth = width - 2 * padding;
+            const graphHeight = height - 2 * padding;
+            
+            const bounds = getGraphBounds(data, graphType, points);
+            const minValue = bounds.min;
+            const maxValue = bounds.max;
+            const valueRange = maxValue - minValue;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw axes
+            ctx.strokeStyle = '#4a4a5e';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.lineTo(width - padding, height - padding);
+            ctx.stroke();
+            
+            // Draw zero line if in range
+            if (minValue < 0 && maxValue > 0) {
+                const zeroY = height - padding - ((-minValue) / valueRange) * graphHeight;
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(padding, zeroY);
+                ctx.lineTo(width - padding, zeroY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Draw grid
+            ctx.strokeStyle = '#2a2a3e';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (i / 10) * graphWidth;
+                const y = padding + (i / 10) * graphHeight;
+                
+                ctx.beginPath();
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, height - padding);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+            }
+            
+            // Draw the curve
+            if (graphType === 'acceleration') {
+                // Draw piecewise linear for acceleration
+                const sorted = [...points].sort((a, b) => a.t - b.t);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                for (let i = 0; i < sorted.length; i++) {
+                    const x = padding + (sorted[i].t / simState.maxTime) * graphWidth;
+                    const y = height - padding - ((sorted[i].value - minValue) / valueRange) * graphHeight;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            } else {
+                // Draw smooth curve for velocity and position
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                for (let i = 0; i < data.length; i++) {
+                    const x = padding + (simState.time[i] / simState.maxTime) * graphWidth;
+                    const y = height - padding - ((data[i] - minValue) / valueRange) * graphHeight;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+            
+            // Draw control points
+            for (let i = 0; i < points.length; i++) {
+                const point = points[i];
+                const x = padding + (point.t / simState.maxTime) * graphWidth;
+                const y = height - padding - ((point.value - minValue) / valueRange) * graphHeight;
+                
+                const isFixed = (graphType === 'position' && (i === 0 || i === points.length - 1)) ||
+                                (graphType === 'velocity' && i === 0) ||
+                                (graphType === 'acceleration' && i === 0);
+                
+                const isDraggable = point.isDraggable !== false && !isFixed;
+                
+                // Draw connecting line to show correspondence
+                if (graphType !== 'acceleration') {
+                    ctx.strokeStyle = color + '40';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([2, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(x, padding);
+                    ctx.lineTo(x, height - padding);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                
+                ctx.fillStyle = isFixed ? '#666' : color;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x, y, isDraggable ? 6 : 4, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Show value
+                ctx.fillStyle = color;
+                ctx.font = '9px Arial';
+                ctx.fillText(point.value.toFixed(1), x + 8, y - 5);
+            }
+            
+            // Draw labels
+            ctx.fillStyle = '#b0b0c0';
+            ctx.font = '10px Arial';
+            ctx.fillText('0', padding - 20, height - padding + 15);
+            ctx.fillText(simState.maxTime.toFixed(0) + 's', width - padding - 15, height - padding + 15);
+            
+            let unit = '';
+            if (graphType === 'acceleration') unit = ' m/s²';
+            else if (graphType === 'velocity') unit = ' m/s';
+            else unit = ' m';
+            
+            ctx.fillText(maxValue.toFixed(0) + unit, padding - 30, padding);
+            ctx.fillText(minValue.toFixed(0) + unit, padding - 30, height - padding);
+        }
+
+        // Update all visualizations
+        function updateVisualizations() {
+            drawGraph(accelCtx, accelCanvas, simState.accel, simState.accelPoints, '#FF6B6B', 'acceleration');
+            drawGraph(velocityCtx, velocityCanvas, simState.velocity, simState.velocityPoints, '#4ECDC4', 'velocity');
+            drawGraph(positionCtx, positionCanvas, simState.position, simState.positionPoints, '#45B7D1', 'position');
+            
+            // Update car position
+            const car = document.getElementById('car');
+            const track = document.querySelector('.track');
+            const trackWidth = track.offsetWidth;
+            
+            const timeIdx = Math.min(
+                Math.floor(simState.currentTime / simState.dt),
+                simState.position.length - 1
+            );
+            const currentPos = timeIdx >= 0 ? simState.position[timeIdx] : 0;
+            
+            // Find the actual final position (where car ends up at t=5)
+            const finalPos = simState.position[simState.position.length - 1] || 100;
+            
+            // Find min and max positions for proper scaling
+            const minPos = Math.min(...simState.position, 0);
+            const maxPos = Math.max(...simState.position, 100);
+            const posRange = maxPos - minPos;
+            
+            // Map position to track, with smart scaling
+            let carX;
+            if (posRange > 0) {
+                // Normalize position to [0, 1] range based on actual min/max
+                const normalizedPos = (currentPos - minPos) / posRange;
+                carX = normalizedPos * trackWidth * 0.9; // Use 90% of track width
+            } else {
+                carX = 0;
+            }
+            
+            // Keep car visible on track
+            const constrainedX = Math.max(-20, Math.min(trackWidth - 20, carX));
+            car.style.left = `${20 + constrainedX}px`;
+            
+            // Update finish line position to match final position
+            const finishLine = document.querySelector('.finish-line');
+            if (finishLine && finalPos > 0) {
+                const finishX = ((finalPos - minPos) / posRange) * trackWidth * 0.9;
+                finishLine.style.right = 'auto';
+                finishLine.style.left = `${20 + finishX}px`;
+            }
+            
+            // Flip car direction if going backwards
+            if (timeIdx > 0) {
+                const prevPos = simState.position[Math.max(0, timeIdx - 1)];
+                const velocity = currentPos - prevPos;
+                if (velocity < 0) {
+                    car.style.transform = 'scaleX(-1)';
+                } else {
+                    car.style.transform = 'scaleX(1)';
+                }
+            }
+        }
+
+        // Handle mouse interactions for all graphs
+        function setupGraphInteraction(canvas, graphType) {
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return; // Only left click
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const padding = 35;
+                const graphWidth = rect.width - 2 * padding;
+                const graphHeight = rect.height - 2 * padding;
+                
+                if (x < padding || x > rect.width - padding || 
+                    y < padding || y > rect.height - padding) return;
+                
+                let points, data;
+                if (graphType === 'acceleration') {
+                    points = simState.accelPoints;
+                    data = simState.accel;
+                } else if (graphType === 'velocity') {
+                    points = simState.velocityPoints;
+                    data = simState.velocity;
+                } else {
+                    points = simState.positionPoints;
+                    data = simState.position;
+                }
+                
+                const bounds = getGraphBounds(data, graphType, points);
+                const minValue = bounds.min;
+                const maxValue = bounds.max;
+                
+                // Find nearest point
+                let nearestIdx = -1;
+                let nearestDist = Infinity;
+                
+                for (let i = 0; i < points.length; i++) {
+                    const point = points[i];
+                    const px = padding + (point.t / simState.maxTime) * graphWidth;
+                    const py = rect.height - padding - ((point.value - minValue) / (maxValue - minValue)) * graphHeight;
+                    const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
+                    
+                    if (dist < 15 && dist < nearestDist) {
+                        nearestIdx = i;
+                        nearestDist = dist;
+                    }
+                }
+                
+                if (nearestIdx >= 0) {
+                    // Check if point is draggable
+                    const isFixed = (graphType === 'position' && (nearestIdx === 0 || nearestIdx === points.length - 1)) ||
+                                   (graphType === 'velocity' && nearestIdx === 0) ||
+                                   (graphType === 'acceleration' && nearestIdx === 0);
+                    
+                    if (!isFixed) {
+                        dragState.isDragging = true;
+                        dragState.graphType = graphType;
+                        dragState.pointIndex = nearestIdx;
+                    }
+                } else if (graphType === 'acceleration') {
+                    // Add new point only on acceleration graph
+                    const t = ((x - padding) / graphWidth) * simState.maxTime;
+                    const value = (1 - (y - padding) / graphHeight) * (maxValue - minValue) + minValue;
+                    
+                    simState.accelPoints.push({t: t, value: value});
+                    simState.accelPoints.sort((a, b) => a.t - b.t);
+                    computeFromAcceleration();
+                    updateVisualizations();
+                }
+            });
+        }
+
+        // Setup interactions for all graphs
+        setupGraphInteraction(accelCanvas, 'acceleration');
+        setupGraphInteraction(velocityCanvas, 'velocity');
+        setupGraphInteraction(positionCanvas, 'position');
+
+        // Global mouse move handler
+        document.addEventListener('mousemove', (e) => {
+            if (!dragState.isDragging) return;
+            
+            let canvas;
+            if (dragState.graphType === 'acceleration') canvas = accelCanvas;
+            else if (dragState.graphType === 'velocity') canvas = velocityCanvas;
+            else canvas = positionCanvas;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const padding = 35;
+            const graphWidth = rect.width - 2 * padding;
+            const graphHeight = rect.height - 2 * padding;
+            
+            let points, data;
+            if (dragState.graphType === 'acceleration') {
+                points = simState.accelPoints;
+                data = simState.accel;
+            } else if (dragState.graphType === 'velocity') {
+                points = simState.velocityPoints;
+                data = simState.velocity;
+            } else {
+                points = simState.positionPoints;
+                data = simState.position;
+            }
+            
+            const bounds = getGraphBounds(data, dragState.graphType);
+            const point = points[dragState.pointIndex];
+            
+            // Update time (constrain to not cross other points) - only for acceleration
+            if (dragState.graphType === 'acceleration' && 
+                dragState.pointIndex > 0 && dragState.pointIndex < points.length - 1) {
+                const prevPoint = points[dragState.pointIndex - 1];
+                const nextPoint = points[dragState.pointIndex + 1];
+                const newT = Math.max(prevPoint.t + 0.1, Math.min(nextPoint.t - 0.1, 
+                    ((x - padding) / graphWidth) * simState.maxTime));
+                point.t = newT;
+            }
+            
+            // Update value
+            const newValue = (1 - (y - padding) / graphHeight) * (bounds.max - bounds.min) + bounds.min;
+            
+            if (dragState.graphType === 'position') {
+                // Constrain position to be monotonic
+                const minPos = dragState.pointIndex > 0 ? points[dragState.pointIndex - 1].value + 1 : 0;
+                const maxPos = dragState.pointIndex < points.length - 1 ? points[dragState.pointIndex + 1].value - 1 : 100;
+                point.value = Math.max(minPos, Math.min(maxPos, newValue));
+            } else {
+                point.value = newValue;
+            }
+            
+            // Recompute based on what was changed
+            if (dragState.graphType === 'acceleration') {
+                computeFromAcceleration();
+            } else if (dragState.graphType === 'velocity') {
+                computeFromVelocity();
+            } else {
+                computeFromPosition();
+            }
+            
+            updateVisualizations();
+        });
+
+        // Global mouse up handler
+        document.addEventListener('mouseup', () => {
+            dragState.isDragging = false;
+        });
+
+        // Right click to remove points (acceleration only)
+        accelCanvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const rect = accelCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const padding = 35;
+            const graphWidth = rect.width - 2 * padding;
+            const graphHeight = rect.height - 2 * padding;
+            
+            const bounds = getGraphBounds(simState.accel, 'acceleration', simState.accelPoints);
+            
+            // Find nearest point (except first and last)
+            for (let i = 1; i < simState.accelPoints.length - 1; i++) {
+                const point = simState.accelPoints[i];
+                const px = padding + (point.t / simState.maxTime) * graphWidth;
+                const py = rect.height - padding - ((point.value - bounds.min) / (bounds.max - bounds.min)) * graphHeight;
+                const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
+                
+                if (dist < 15) {
+                    simState.accelPoints.splice(i, 1);
+                    computeFromAcceleration();
+                    updateVisualizations();
+                    break;
+                }
+            }
+        });
+
+        // Animation loop
+        let animationId = null;
+        let lastFrameTime = 0;
+        
+        function animate(timestamp) {
+            if (!lastFrameTime) lastFrameTime = timestamp;
+            const elapsed = timestamp - lastFrameTime;
+            
+            if (simState.isPlaying && elapsed > 16) { // Cap at ~60fps
+                simState.currentTime += simState.dt * 2; // Speed up playback
+                if (simState.currentTime > simState.maxTime) {
+                    simState.currentTime = simState.maxTime;
+                    simState.isPlaying = false;
+                    updatePlayButton();
+                }
+                updateVisualizations();
+                lastFrameTime = timestamp;
+            }
+            
+            if (simState.isPlaying) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+
+        // Event handlers
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (simState.currentTime >= simState.maxTime) {
+                simState.currentTime = 0;
+            }
+            simState.isPlaying = true;
+            updatePlayButton();
+            lastFrameTime = 0;
+            animate(0);
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            simState.isPlaying = false;
+            updatePlayButton();
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        });
+
+        document.getElementById('stepBtn').addEventListener('click', () => {
+            simState.isPlaying = false;
+            updatePlayButton();
+            simState.currentTime = Math.min(simState.currentTime + 0.1, simState.maxTime);
+            updateVisualizations();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            simState.isPlaying = false;
+            updatePlayButton();
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            simState.currentTime = 0;
+            // Try a reset with negative acceleration to test negative velocity
+            simState.accelPoints = [{t: 0, value: 0}, {t: 1.5, value: 15}, {t: 3, value: -20}, {t: 5, value: 0}];
+            computeFromAcceleration();
+            updateVisualizations();
+        });
+
+        function updatePlayButton() {
+            const playBtn = document.getElementById('playBtn');
+            if (simState.isPlaying) {
+                playBtn.classList.add('playing');
+                playBtn.textContent = '⏸ Playing';
+            } else {
+                playBtn.classList.remove('playing');
+                playBtn.textContent = '▶ Play';
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            setupCanvases();
+            computeFromAcceleration();
+            updateVisualizations();
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            setupCanvases();
+            updateVisualizations();
+        });
+    </script>
+</body>
+</html>
